@@ -9,6 +9,16 @@ const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const META_FILE = path.join(DATA_DIR, 'meta.json');
 
+const DEFAULT_USERS = {
+  Manna: { password: 'studion', role: 'admin' },
+  Linnea: { password: '3535', role: 'admin' },
+  admin: { password: '3535', role: 'admin' },
+  Theo: { password: 'Kung1', role: 'owner' },
+  William: { password: '3515', role: 'owner' },
+  Tilda: { password: 'blodsugare', role: 'owner' },
+  Ellen: { password: 'Dumpling', role: 'owner' }
+};
+
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -34,10 +44,50 @@ function hashPassword(password) {
   return crypto.createHash('sha256').update(String(password)).digest('hex');
 }
 
+function isBuiltInUser(name) {
+  const normalized = String(name || '').trim().toLowerCase();
+  return Object.keys(DEFAULT_USERS).some((key) => key.toLowerCase() === normalized);
+}
+
+function getDefaultUser(name) {
+  const normalized = String(name || '').trim().toLowerCase();
+  const match = Object.keys(DEFAULT_USERS).find((key) => key.toLowerCase() === normalized);
+  if (!match) return null;
+  return { username: match, ...DEFAULT_USERS[match] };
+}
+
+function getUsers() {
+  ensureFiles();
+  return readJson(USERS_FILE);
+}
+
+function saveUsers(users) {
+  ensureFiles();
+  writeJson(USERS_FILE, users);
+}
+
+function getUserKey(users, username) {
+  const name = String(username || '').trim();
+  if (!name) return null;
+  const exact = users[name];
+  if (exact) return name;
+  const match = Object.keys(users).find((key) => key.toLowerCase() === name.toLowerCase());
+  return match || null;
+}
+
+function isAdminUser(user, name) {
+  if (!user) return false;
+  if (user.isAdmin || user.role === 'owner' || user.role === 'admin') return true;
+  const normalized = String(name || user.username || '').trim().toLowerCase();
+  const builtIn = getDefaultUser(normalized);
+  return Boolean(builtIn && (builtIn.role === 'admin' || builtIn.role === 'owner'));
+}
+
 function sanitizeUser(user) {
   return {
     username: user.username,
-    isAdmin: Boolean(user.isAdmin || user.username?.toLowerCase() === 'admin'),
+    role: user.role || (user.isAdmin ? 'admin' : 'player'),
+    isAdmin: isAdminUser(user, user.username),
     score: Number(user.score || 0),
     level: Number(user.level || 1),
     streak: Number(user.streak || 0),
@@ -49,14 +99,32 @@ function sanitizeUser(user) {
   };
 }
 
-function getUsers() {
-  ensureFiles();
-  return readJson(USERS_FILE);
-}
+function ensureBuiltInAccount(name, passwordOverride) {
+  const users = getUsers();
+  const defaultUser = getDefaultUser(name);
+  if (!defaultUser) return users;
 
-function saveUsers(users) {
-  ensureFiles();
-  writeJson(USERS_FILE, users);
+  const existingKey = getUserKey(users, name) || defaultUser.username;
+  if (!users[existingKey]) {
+    users[existingKey] = {
+      username: defaultUser.username,
+      password: hashPassword(passwordOverride || defaultUser.password),
+      isAdmin: true,
+      role: defaultUser.role,
+      score: 0,
+      level: 1,
+      streak: 0,
+      caught: 0,
+      qCount: 0,
+      coins: 0,
+      mode: 'mixed',
+      inventory: {},
+      shinyInventory: {}
+    };
+    saveUsers(users);
+  }
+
+  return users;
 }
 
 app.get('/api/health', (_, res) => {
@@ -72,16 +140,19 @@ app.post('/api/signup', (req, res) => {
     return res.status(400).json({ error: 'Ange användarnamn och lösenord (minst 3/4 tecken).' });
   }
 
+  if (isBuiltInUser(name)) {
+    return res.status(403).json({ error: 'Det användarnamnet är reserverat för ett admin-/owner-konto.' });
+  }
+
   const users = getUsers();
-  if (users[name]) {
+  if (getUserKey(users, name)) {
     return res.status(409).json({ error: 'Det kontot finns redan. Logga in istället.' });
   }
 
-  const isAdmin = name.toLowerCase() === 'admin';
-
   users[name] = {
     username: name,
-    isAdmin,
+    isAdmin: false,
+    role: 'player',
     password: hashPassword(pass),
     score: 0,
     level: 1,
@@ -108,13 +179,24 @@ app.post('/api/login', (req, res) => {
     return res.status(400).json({ error: 'Saknar användarnamn eller lösenord.' });
   }
 
-  const users = getUsers();
-  const user = users[name];
-  if (!user || user.password !== hashPassword(pass)) {
+  let users = getUsers();
+  const builtIn = getDefaultUser(name);
+  if (builtIn) {
+    users = ensureBuiltInAccount(name, builtIn.password);
+  }
+
+  const key = getUserKey(users, name);
+  if (!key) {
     return res.status(401).json({ error: 'Fel tränarnamn eller lösenord.' });
   }
 
-  user.isAdmin = Boolean(user.isAdmin || name.toLowerCase() === 'admin');
+  const user = users[key];
+  if (user.password !== hashPassword(pass)) {
+    return res.status(401).json({ error: 'Fel tränarnamn eller lösenord.' });
+  }
+
+  user.isAdmin = isAdminUser(user, key);
+  user.role = user.role || (user.isAdmin ? 'admin' : 'player');
   saveUsers(users);
 
   res.json({ success: true, user: sanitizeUser(user) });
@@ -130,12 +212,18 @@ app.post('/api/save', (req, res) => {
   }
 
   const users = getUsers();
-  const user = users[name];
-  if (!user || user.password !== hashPassword(pass)) {
+  const key = getUserKey(users, name);
+  if (!key) {
     return res.status(401).json({ error: 'Fel tränarnamn eller lösenord.' });
   }
 
-  user.isAdmin = Boolean(user.isAdmin || name.toLowerCase() === 'admin');
+  const user = users[key];
+  if (user.password !== hashPassword(pass)) {
+    return res.status(401).json({ error: 'Fel tränarnamn eller lösenord.' });
+  }
+
+  user.isAdmin = isAdminUser(user, key);
+  user.role = user.role || (user.isAdmin ? 'admin' : 'player');
 
   const saved = {
     ...user,
@@ -150,7 +238,7 @@ app.post('/api/save', (req, res) => {
     shinyInventory: game.shinyInventory || {}
   };
 
-  users[name] = saved;
+  users[key] = saved;
   saveUsers(users);
   res.json({ success: true, user: sanitizeUser(saved) });
 });
@@ -159,7 +247,7 @@ app.get('/api/users', (_, res) => {
   const users = getUsers();
   const list = Object.keys(users).map((name) => ({
     username: name,
-    isAdmin: Boolean(users[name].isAdmin || name.toLowerCase() === 'admin'),
+    isAdmin: isAdminUser(users[name], name),
     caught: Number(users[name].caught || 0),
     coins: Number(users[name].coins || 0),
     score: Number(users[name].score || 0),
@@ -180,8 +268,8 @@ app.post('/api/meta', (req, res) => {
   const pass = String(password || '').trim();
 
   const users = getUsers();
-  const user = users[name];
-  if (!user || user.password !== hashPassword(pass) || (!user.isAdmin && name.toLowerCase() !== 'admin')) {
+  const key = getUserKey(users, name);
+  if (!key || users[key].password !== hashPassword(pass) || !isAdminUser(users[key], key)) {
     return res.status(403).json({ error: 'Endast admin kan ändra globalt meddelande.' });
   }
 
@@ -198,8 +286,8 @@ app.post('/api/spawn', (req, res) => {
   const pass = String(password || '').trim();
 
   const users = getUsers();
-  const user = users[name];
-  if (!user || user.password !== hashPassword(pass) || (!user.isAdmin && name.toLowerCase() !== 'admin')) {
+  const key = getUserKey(users, name);
+  if (!key || users[key].password !== hashPassword(pass) || !isAdminUser(users[key], key)) {
     return res.status(403).json({ error: 'Endast admin kan spawna Pokémon.' });
   }
 
