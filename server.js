@@ -37,6 +37,7 @@ function hashPassword(password) {
 function sanitizeUser(user) {
   return {
     username: user.username,
+    isAdmin: Boolean(user.isAdmin || user.username?.toLowerCase() === 'admin'),
     score: Number(user.score || 0),
     level: Number(user.level || 1),
     streak: Number(user.streak || 0),
@@ -76,8 +77,11 @@ app.post('/api/signup', (req, res) => {
     return res.status(409).json({ error: 'Det kontot finns redan. Logga in istället.' });
   }
 
+  const isAdmin = name.toLowerCase() === 'admin';
+
   users[name] = {
     username: name,
+    isAdmin,
     password: hashPassword(pass),
     score: 0,
     level: 1,
@@ -110,6 +114,9 @@ app.post('/api/login', (req, res) => {
     return res.status(401).json({ error: 'Fel tränarnamn eller lösenord.' });
   }
 
+  user.isAdmin = Boolean(user.isAdmin || name.toLowerCase() === 'admin');
+  saveUsers(users);
+
   res.json({ success: true, user: sanitizeUser(user) });
 });
 
@@ -127,6 +134,8 @@ app.post('/api/save', (req, res) => {
   if (!user || user.password !== hashPassword(pass)) {
     return res.status(401).json({ error: 'Fel tränarnamn eller lösenord.' });
   }
+
+  user.isAdmin = Boolean(user.isAdmin || name.toLowerCase() === 'admin');
 
   const saved = {
     ...user,
@@ -150,6 +159,7 @@ app.get('/api/users', (_, res) => {
   const users = getUsers();
   const list = Object.keys(users).map((name) => ({
     username: name,
+    isAdmin: Boolean(users[name].isAdmin || name.toLowerCase() === 'admin'),
     caught: Number(users[name].caught || 0),
     coins: Number(users[name].coins || 0),
     score: Number(users[name].score || 0),
@@ -165,8 +175,16 @@ app.get('/api/meta', (_, res) => {
 });
 
 app.post('/api/meta', (req, res) => {
-  const { message } = req.body || {};
-  ensureFiles();
+  const { username, password, message } = req.body || {};
+  const name = String(username || '').trim();
+  const pass = String(password || '').trim();
+
+  const users = getUsers();
+  const user = users[name];
+  if (!user || user.password !== hashPassword(pass) || (!user.isAdmin && name.toLowerCase() !== 'admin')) {
+    return res.status(403).json({ error: 'Endast admin kan ändra globalt meddelande.' });
+  }
+
   const meta = readJson(META_FILE);
   meta.message = String(message || '');
   meta.time = Date.now();
@@ -175,18 +193,27 @@ app.post('/api/meta', (req, res) => {
 });
 
 app.post('/api/spawn', (req, res) => {
-  const { pokemonId, shiny } = req.body || {};
+  const { username, password, pokemonId, shiny } = req.body || {};
+  const name = String(username || '').trim();
+  const pass = String(password || '').trim();
+
   const users = getUsers();
-  Object.keys(users).forEach((name) => {
-    const user = users[name];
+  const user = users[name];
+  if (!user || user.password !== hashPassword(pass) || (!user.isAdmin && name.toLowerCase() !== 'admin')) {
+    return res.status(403).json({ error: 'Endast admin kan spawna Pokémon.' });
+  }
+
+  Object.keys(users).forEach((accountName) => {
+    const acc = users[accountName];
     if (shiny) {
-      user.shinyInventory = user.shinyInventory || {};
-      user.shinyInventory[pokemonId] = (user.shinyInventory[pokemonId] || 0) + 1;
+      acc.shinyInventory = acc.shinyInventory || {};
+      acc.shinyInventory[pokemonId] = (acc.shinyInventory[pokemonId] || 0) + 1;
     } else {
-      user.inventory = user.inventory || {};
-      user.inventory[pokemonId] = (user.inventory[pokemonId] || 0) + 1;
+      acc.inventory = acc.inventory || {};
+      acc.inventory[pokemonId] = (acc.inventory[pokemonId] || 0) + 1;
     }
   });
+
   saveUsers(users);
   res.json({ success: true });
 });
