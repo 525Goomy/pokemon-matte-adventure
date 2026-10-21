@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pokémon Matteäventyr</title>
+  <style>
+    :root {
+      --bg: #eaf5ff;
+      --card: #ffffff;
+      --ink: #1a2333;
+      --blue: #2f80ed;
+      --green: #20a56b;
+      --red: #d64545;
+      --gold: #f0b429;
+      --muted: #6d7a8d;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #cfe8ff, #f7fbff);
+      color: var(--ink);
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+    .card, header {
+      background: var(--card);
+      border-radius: 22px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      border: 1px solid rgba(255,255,255,.7);
+    }
+    header {
+      padding: 22px 20px;
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 5vw, 46px);
+    }
+    .sub { margin: 0; color: var(--muted); }
+    .stats {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .stat {
+      background: #f4f7fb;
+      border-radius: 15px;
+      padding: 12px;
+      font-weight: 800;
+    }
+    .stat span {
+      display: block;
+      font-size: 11px;
+      color: #667085;
+      margin-bottom: 4px;
+    }
+    .game {
+      margin-top: 16px;
+      background: white;
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.07);
+    }
+    .pokemonImg {
+      display: block;
+      width: 130px;
+      height: 130px;
+      object-fit: contain;
+      margin: 0 auto 6px;
+    }
+    .name {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 900;
+    }
+    .rarity {
+      text-align: center;
+      font-size: 15px;
+      font-weight: 800;
+      margin-top: 5px;
+      color: var(--muted);
+    }
+    .question {
+      text-align: center;
+      font-size: clamp(32px, 8vw, 62px);
+      font-weight: 900;
+      margin: 16px 0;
+    }
+    .answers {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .ans {
+      border: 0;
+      border-radius: 15px;
+      padding: 18px;
+      background: #eaf2ff;
+      font-size: 22px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .ans:disabled { opacity: .75; }
+    .msg {
+      min-height: 30px;
+      text-align: center;
+      margin: 16px 0 8px;
+      font-weight: 800;
+      font-size: 18px;
+    }
+    .good { color: var(--green); }
+    .bad { color: var(--red); }
+    .progress {
+      height: 12px;
+      background: #e9edf2;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--blue), #7c4dff);
+      transition: width .2s ease;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-weight: 800;
+      background: var(--ink);
+      color: white;
+    }
+    .btn.secondary { background: #e8edf5; color: var(--ink); }
+    .btn.gold { background: var(--gold); color: #1d232f; }
+    .btn.red { background: var(--red); }
+    .btn.blue { background: var(--blue); }
+    .account-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+    }
+    input, select {
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      font-size: 15px;
+      min-height: 42px;
+    }
+    .hidden { display: none !important; }
+    .section {
+      margin-top: 16px;
+      background: white;
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.07);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .dexGrid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .dexItem {
+      background: #f6f8fb;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+      min-height: 95px;
+      border: 1px solid #e7edf4;
+    }
+    .dexItem .num {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .dexItem .img {
+      width: 46px;
+      height: 46px;
+      object-fit: contain;
+      margin: 4px auto;
+    }
+    .dexItem.locked {
+      filter: grayscale(1);
+      opacity: .45;
+    }
+    .dexSearch {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .dexSearch input {
+      flex: 1;
+      min-width: 180px;
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab {
+      border: 0;
+      background: #e8edf5;
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: var(--ink);
+      color: white;
+    }
+    .admin {
+      display: none;
+    }
+    .admin.visible {
+      display: block;
+    }
+    .admin-box {
+      margin-top: 14px;
+      background: #f8fafc;
+      border: 1px solid #e0e7f1;
+      border-radius: 16px;
+      padding: 14px;
+    }
+    @media (max-width: 750px) {
+      .stats { grid-template-columns: repeat(2,1fr); }
+      .grid { grid-template-columns: 1fr; }
+      .dexGrid { grid-template-columns: repeat(3,1fr); }
+      .answers { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>⚡ Pokémon Matteäventyr ⚡</h1>
+      <p class="sub">Svara rätt, fånga Pokémon och bygg ditt index.</p>
+      <div class="stats">
+        <div class="stat"><span>POÄNG</span><b id="score">0</b></div>
+        <div class="stat"><span>NIVÅ</span><b id="level">1</b></div>
+        <div class="stat"><span>STREAK</span><b id="streak">0</b></div>
+        <div class="stat"><span>FÅNGADE</span><b id="caught">0</b></div>
+      </div>
+    </header>
+
+    <section class="card" style="margin-top: 16px; padding: 18px;">
+      <h2 style="margin:0; text-align:center;">🪙 Coins: <span id="coins">0</span></h2>
+      <p style="margin: 8px 0 0; text-align:center; color: var(--muted);">Få coins genom att svara rätt och fånga Pokémon.</p>
+    </section>
+
+    <section class="card" style="margin-top:16px; padding:18px;">
+      <div id="loggedOut">
+        <h2 style="margin:0 0 10px; text-align:center;">👤 Tränarkonto</h2>
+        <div class="account-row">
+          <input id="username" maxlength="20" placeholder="Tränarnamn" />
+          <input id="password" type="password" maxlength="40" placeholder="Lösenord" />
+          <button class="btn secondary" id="togglePassword" type="button">👁 Visa</button>
+          <button class="btn blue" id="createAccount">Skapa konto</button>
+          <button class="btn secondary" id="loginAccount">Logga in</button>
+        </div>
+      </div>
+
+      <div id="loggedIn" class="hidden">
+        <div style="text-align:center;">
+          <b>Inloggad som <span id="currentUser"></span></b>
+        </div>
+        <div class="account-row" style="margin-top: 10px;">
+          <button class="btn secondary" id="logout">Logga ut</button>
+        </div>
+      </div>
+      <div class="center" style="margin-top: 12px; text-align:center;">
+        <button class="btn red" id="adminToggle" type="button">🛠 ÖPPNA ADMINPANEL</button>
+      </div>
+    </section>
+
+    <section class="game">
+      <img id="pokemonImg" class="pokemonImg" alt="Pokémon" />
+      <div class="name" id="name">Pikachu</div>
+      <div class="rarity" id="rarity">Vanlig</div>
+      <div class="question" id="question">2 + 3 = ?</div>
+      <div class="answers" id="answers"></div>
+      <div class="msg" id="msg"></div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="controls">
+        <button class="btn red" id="resetAllData">🔄 Återställ spel</button>
+        <button class="btn secondary" id="mode">Byt räknesätt: Blandat</button>
+        <button class="btn" id="restart">Börja om</button>
+      </div>
+      <div style="text-align:center; margin-top:12px;">
+        <b id="badge">🏅 Nybörjartränare</b>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="section">
+        <h2 style="margin-top:0;">📚 Pokédex</h2>
+        <div class="tabs">
+          <button class="tab active" data-tab="normal">Vanligt index</button>
+          <button class="tab" data-tab="shiny">✨ Shiny</button>
+          <button class="tab" data-tab="traits">🧬 Traits</button>
+        </div>
+        <div class="dexSearch">
+          <input id="dexSearch" placeholder="Sök Pokémon…" />
+          <select id="dexPageSize">
+            <option value="60">60</option>
+            <option value="120">120</option>
+            <option value="240">240</option>
+          </select>
+        </div>
+        <div class="dexGrid" id="dexGrid"></div>
+      </section>
+
+      <section class="section">
+        <h2 style="margin-top:0;">🏆 Indexstatus</h2>
+        <div id="indexStatus">Laddar...</div>
+      </section>
+    </div>
+
+    <section class="section admin" id="adminPanel">
+      <h2 style="margin-top:0;">🛠️ Adminpanel</h2>
+
+      <div class="admin-box">
+        <h3>📢 Globalt meddelande</h3>
+        <textarea id="adminMessage" rows="4" style="width:100%; resize:vertical;"></textarea>
+        <div class="controls" style="justify-content:flex-start;">
+          <button class="btn blue" id="sendMessage">Skicka</button>
+          <button class="btn secondary" id="clearMessage">Rensa</button>
+        </div>
+      </div>
+
+      <div class="admin-box">
+        <h3>🌟 Spawn Pokémon</h3>
+        <div class="account-row" style="justify-content:flex-start;">
+          <input id="spawnSearch" list="spawnSuggestions" placeholder="# eller namn" style="flex:1;" />
+          <datalist id="spawnSuggestions"></datalist>
+          <label style="display:flex; align-items:center; gap:5px;">
+            <input type="checkbox" id="spawnShiny" /> Shiny
+          </label>
+          <button class="btn gold" id="spawnPokemon">Spawna</button>
+        </div>
+        <div id="spawnResult" style="margin-top:8px; color: var(--muted);"></div>
+      </div>
+
+      <div class="admin-box">
+        <h3>👥 Konton</h3>
+        <div id="userList"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const mons = [
+      { id:1, n:"Bulbasaur" }, { id:2, n:"Ivysaur" }, { id:3, n:"Venusaur" },
+      { id:4, n:"Charmander" }, { id:5, n:"Charmeleon" }, { id:6, n:"Charizard" },
+      { id:7, n:"Squirtle" }, { id:8, n:"Wartortle" }, { id:9, n:"Blastoise" },
+      { id:10, n:"Caterpie" }, { id:11, n:"Metapod" }, { id:12, n:"Butterfree" },
+      { id:13, n:"Weedle" }, { id:14, n:"Kakuna" }, { id:15, n:"Beedrill" },
+      { id:16, n:"Pidgey" }, { id:17, n:"Pidgeotto" }, { id:18, n:"Pidgeot" },
+      { id:19, n:"Rattata" }, { id:20, n:"Raticate" }, { id:25, n:"Pikachu" },
+      { id:26, n:"Raichu" }, { id:52, n:"Meowth" }, { id:53, n:"Persian" },
+      { id:94, n:"Gengar" }, { id:99, n:"Kingler" }, { id:143, n:"Snorlax" },
+      { id:150, n:"Mewtwo" }, { id:151, n:"Mew" }, { id:245, n:"Suicune" },
+      { id:249, n:"Lugia" }, { id:250, n:"Ho-Oh" }, { id:493, n:"Arceus" }
+    ];
+
+    let score = 0;
+    let level = 1;
+    let streak = 0;
+    let caught = 0;
+    let qCount = 0;
+    let coins = 0;
+    let currentUser = null;
+    let currentPassword = null;
+    let mode = "mixed";
+    let currentPokemon = null;
+    let answer = null;
+    let inventory = {};
+    let shinyInventory = {};
+    let activeTab = "normal";
+
+    function $(id) { return document.getElementById(id); }
+
+    function getDex(id) {
+      return mons.find(p => p.id === Number(id)) || null;
+    }
+
+    function spriteUrl(id, shiny = false) {
+      return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shiny ? "shiny/" : ""}${id}.png`;
+    }
+
+    function rand(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function shuffle(arr) {
+      return [...arr].sort(() => Math.random() - 0.5);
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+      const data = await response.json();
+      return { ok: response.ok, data };
+    }
+
+    function updateStats() {
+      $('score').textContent = score;
+      $('level').textContent = level;
+      $('streak').textContent = streak;
+      $('caught').textContent = caught;
+      $('coins').textContent = coins;
+      const badge = [
+        '🏅 Nybörjartränare',
+        '🥉 Matteutmanare',
+        '🥈 Supertränare',
+        '🥇 Pokémonmästare',
+        '👑 Matte-KING'
+      ];
+      $('badge').textContent = badge[Math.min(4, Math.floor(score / 120))];
+    }
+
+    function updateModeText() {
+      const labels = {
+        mixed: 'Blandat',
+        '+': 'Addition',
+        '-': 'Subtraktion',
+        '×': 'Multiplikation',
+        '÷': 'Division'
+      };
+      $('mode').textContent = 'Byt räknesätt: ' + labels[mode];
+    }
+
+    function makeQuestion() {
+      let qText, choices, correct;
+      const ops = mode === 'mixed' ? ['+', '-', '×', '÷'] : [mode];
+      const op = ops[rand(0, ops.length - 1)];
+      let a, b, res;
+
+      if (op === '+') {
+        a = rand(1, 20);
+        b = rand(1, 20);
+        res = a + b;
+      } else if (op === '-') {
+        a = rand(8, 40);
+        b = rand(1, a - 1);
+        res = a - b;
+      } else if (op === '×') {
+        a = rand(2, 9);
+        b = rand(2, 9);
+        res = a * b;
+      } else {
+        b = rand(2, 9);
+        res = rand(2, 12);
+        a = b * res;
+      }
+
+      qText = `${a} ${op} ${b} = ?`;
+      const opts = [String(res), String(res + 1), String(Math.max(0, res - 1)), String(res + 2)];
+      choices = shuffle(opts);
+      correct = String(res);
+
+      answer = correct;
+      $('question').textContent = qText;
+      $('answers').innerHTML = '';
+      choices.forEach(v => {
+        const btn = document.createElement('button');
+        btn.className = 'ans';
+        btn.textContent = v;
+        btn.addEventListener('click', () => checkAnswer(v, btn));
+        $('answers').appendChild(btn);
+      });
+
+      currentPokemon = rollPokemon();
+      $('name').textContent = currentPokemon.name;
+      $('rarity').textContent = currentPokemon.rarity;
+
+      const img = $('pokemonImg');
+      img.src = spriteUrl(currentPokemon.id, currentPokemon.shiny);
+      img.alt = currentPokemon.name;
+      img.onerror = () => {
+        img.src = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='120' height='120' fill='#dfeaff'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='42'>🔍</text></svg>`
+        );
+      };
+
+      $('bar').style.width = `${(qCount % 10) * 10}%`;
+      $('msg').textContent = '';
+      $('msg').className = 'msg';
+    }
+
+    function rollPokemon() {
+      const p = mons[rand(0, mons.length - 1)];
+      const shiny = Math.random() < 0.12;
+      return {
+        id: p.id,
+        name: p.n,
+        shiny,
+        rarity: shiny ? '✨ Shiny' : 'Vanlig'
+      };
+    }
+
+    function checkAnswer(value, btn) {
+      [...document.querySelectorAll('.ans')].forEach(x => x.disabled = true);
+
+      if (String(value) === String(answer)) {
+        streak += 1;
+        score += 10 + streak * 2;
+        coins += 10;
+        caught += 1;
+
+        if (currentPokemon.shiny) {
+          shinyInventory[currentPokemon.id] = (shinyInventory[currentPokemon.id] || 0) + 1;
+        } else {
+          inventory[currentPokemon.id] = (inventory[currentPokemon.id] || 0) + 1;
+        }
+
+        qCount += 1;
+        level = 1 + Math.floor(score / 120);
+        $('msg').textContent = '✅ Rätt! +10 coins';
+        $('msg').className = 'msg good';
+        btn.style.background = '#d9f8e9';
+      } else {
+        streak = 0;
+        score = Math.max(0, score - 4);
+        qCount += 1;
+        $('msg').textContent = `❌ Rätt svar är ${answer}.`;
+        $('msg').className = 'msg bad';
+        btn.style.background = '#ffe0e0';
+        const correctBtn = [...document.querySelectorAll('.ans')].find(x => x.textContent === String(answer));
+        if (correctBtn) correctBtn.style.background = '#d9f8e9';
+      }
+
+      updateStats();
+      renderDex();
+      saveProgress();
+
+      setTimeout(() => {
+        makeQuestion();
+      }, 700);
+    }
+
+    function renderDex() {
+      const search = $('dexSearch').value.toLowerCase();
+      const list = mons.filter(p => {
+        if (!search) return true;
+        return p.n.toLowerCase().includes(search) || String(p.id).includes(search);
+      });
+
+      const grid = $('dexGrid');
+      grid.innerHTML = '';
+
+      const shown = list.slice(0, Number($('dexPageSize').value) || 60);
+      shown.forEach(p => {
+        const have = !!inventory[p.id] || !!shinyInventory[p.id];
+        const item = document.createElement('div');
+        item.className = 'dexItem' + (!have ? ' locked' : '');
+
+        const img = document.createElement('img');
+        img.className = 'img';
+        img.src = spriteUrl(p.id, !!shinyInventory[p.id]);
+        img.alt = p.n;
+        img.onerror = () => {
+          img.src = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+            `<svg xmlns='http://www.w3.org/2000/svg' width='46' height='46'><rect width='46' height='46' fill='#dfeaff'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='18'>🔍</text></svg>`
+          );
+        };
+
+        const num = document.createElement('div');
+        num.className = 'num';
+        num.textContent = '#' + p.id;
+
+        const name = document.createElement('div');
+        name.textContent = p.n;
+
+        const badge = document.createElement('div');
+        badge.style.fontSize = '11px';
+        badge.style.fontWeight = '900';
+        badge.style.color = have ? '#20a56b' : '#6d7a8d';
+        badge.textContent = have ? 'FÅNGAD' : 'LÅST';
+
+        item.appendChild(num);
+        item.appendChild(img);
+        item.appendChild(name);
+        item.appendChild(badge);
+        grid.appendChild(item);
+      });
+
+      const total = mons.length;
+      const caughtTotal = Object.keys(inventory).length + Object.keys(shinyInventory).length;
+      $('indexStatus').innerHTML = `
+        <b>Vanligt index:</b> ${caughtTotal} / ${total} (${Math.round((caughtTotal / total) * 100)}%)<br>
+        <b>Shiny:</b> ${Object.keys(shinyInventory).length} / ${total}
+      `;
+    }
+
+    async function saveProgress() {
+      if (!currentUser || !currentPassword) return;
+      const result = await api('/api/save', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: currentUser,
+          password: currentPassword,
+          game: { score, level, streak, caught, qCount, coins, mode, inventory, shinyInventory }
+        })
+      });
+      if (!result.ok) console.error(result.data);
+    }
+
+    async function loadMeta() {
+      const result = await api('/api/meta');
+      if (result.ok && result.data.message) {
+        $('adminMessage').value = result.data.message;
+      }
+    }
+
+    function loginUser(name, pass, data) {
+      currentUser = name;
+      currentPassword = pass;
+      score = Number(data.score || 0);
+      level = Number(data.level || 1);
+      streak = Number(data.streak || 0);
+      caught = Number(data.caught || 0);
+      qCount = Number(data.qCount || 0);
+      coins = Number(data.coins || 0);
+      mode = data.mode || 'mixed';
+      inventory = data.inventory || {};
+      shinyInventory = data.shinyInventory || {};
+
+      $('loggedOut').classList.add('hidden');
+      $('loggedIn').classList.remove('hidden');
+      $('currentUser').textContent = currentUser;
+      $('password').value = '';
+
+      updateModeText();
+      updateStats();
+      renderDex();
+      makeQuestion();
+    }
+
+    function logoutUser() {
+      currentUser = null;
+      currentPassword = null;
+      $('loggedIn').classList.add('hidden');
+      $('loggedOut').classList.remove('hidden');
+      $('adminPanel').classList.remove('visible');
+      $('adminToggle').textContent = '🛠 ÖPPNA ADMINPANEL';
+    }
+
+    async function createAccount() {
+      const name = $('username').value.trim();
+      const pass = $('password').value.trim();
+
+      if (!name || !pass || pass.length < 4) {
+        alert('Ange namn och lösenord (minst 4 tecken).');
+        return;
+      }
+
+      const result = await api('/api/signup', {
+        method: 'POST',
+        body: JSON.stringify({ username: name, password: pass })
+      });
+
+      if (!result.ok) {
+        alert(result.data.error || 'Kunde inte skapa konto.');
+        return;
+      }
+
+      loginUser(name, pass, result.data.user);
+      alert('✅ Konto skapat!');
+    }
+
+    async function loginAccount() {
+      const name = $('username').value.trim();
+      const pass = $('password').value.trim();
+      if (!name || !pass) {
+        alert('Fel tränarnamn eller lösenord.');
+        return;
+      }
+
+      const result = await api('/api/login', {
+        method: 'POST',
+        body: JSON.stringify({ username: name, password: pass })
+      });
+
+      if (!result.ok) {
+        alert(result.data.error || 'Fel tränarnamn eller lösenord.');
+        return;
+      }
+
+      loginUser(name, pass, result.data.user);
+    }
+
+    function resetGame() {
+      if (!currentUser) return alert('Logga in först.');
+      if (!confirm('Vill du verkligen återställa hela ditt spel?')) return;
+
+      score = 0; level = 1; streak = 0; caught = 0; qCount = 0; coins = 0;
+      inventory = {}; shinyInventory = {};
+      updateStats();
+      renderDex();
+      makeQuestion();
+      saveProgress();
+    }
+
+    function showAdminPanel() {
+      const panel = $('adminPanel');
+      const btn = $('adminToggle');
+      if (panel.classList.contains('visible')) {
+        panel.classList.remove('visible');
+        btn.textContent = '🛠 ÖPPNA ADMINPANEL';
+      } else {
+        panel.classList.add('visible');
+        btn.textContent = '🛠 STÄNG ADMINPANEL';
+        renderUserList();
+      }
+    }
+
+    async function renderUserList() {
+      const list = $('userList');
+      list.innerHTML = '';
+      const result = await api('/api/users');
+      if (!result.ok) return;
+
+      result.data.users.forEach(user => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.alignItems = 'center';
+        row.style.padding = '8px 0';
+        row.style.borderBottom = '1px solid #e5e7eb';
+
+        const meta = document.createElement('div');
+        meta.innerHTML = `<b>${user.username}</b><div style="color:#6d7a8d;">${user.caught || 0} fångade • ${user.coins || 0} coins</div>`;
+
+        const button = document.createElement('button');
+        button.className = 'btn secondary';
+        button.textContent = 'Välj';
+        button.onclick = () => {
+          $('spawnSearch').value = user.username;
+          $('spawnResult').textContent = `Förbereder spawn för ${user.username}.`;
+        };
+
+        row.appendChild(meta);
+        row.appendChild(button);
+        list.appendChild(row);
+      });
+    }
+
+    function fillSpawnSuggestions() {
+      const q = $('spawnSearch').value.trim().toLowerCase();
+      const datalist = $('spawnSuggestions');
+      datalist.innerHTML = '';
+      if (!q) return;
+
+      mons.filter(p => p.n.toLowerCase().includes(q)).slice(0, 20).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.n;
+        datalist.appendChild(opt);
+      });
+    }
+
+    async function spawnPokemonByName() {
+      const query = $('spawnSearch').value.trim();
+      const pokemon = mons.find(p => p.n.toLowerCase() === query.toLowerCase()) ||
+        mons.find(p => p.n.toLowerCase().includes(query.toLowerCase())) ||
+        mons.find(p => String(p.id) === query);
+
+      if (!pokemon) {
+        $('spawnResult').textContent = 'Hittade ingen Pokémon.';
+        return;
+      }
+
+      const shiny = $('spawnShiny').checked;
+      const result = await api('/api/spawn', {
+        method: 'POST',
+        body: JSON.stringify({ pokemonId: pokemon.id, shiny })
+      });
+
+      if (!result.ok) {
+        $('spawnResult').textContent = 'Kunde inte spawna Pokémon.';
+        return;
+      }
+
+      $('spawnResult').textContent = `✅ Spawnade ${pokemon.n} ${shiny ? '✨ shiny' : ''} för alla konton.`;
+      renderUserList();
+      renderDex();
+    }
+
+    $('togglePassword').addEventListener('click', () => {
+      const field = $('password');
+      const t = field.type === 'password' ? 'text' : 'password';
+      field.type = t;
+      $('togglePassword').textContent = t === 'password' ? '👁 Visa' : '🙈 Dölj';
+    });
+
+    $('createAccount').addEventListener('click', createAccount);
+    $('loginAccount').addEventListener('click', loginAccount);
+    $('logout').addEventListener('click', logoutUser);
+    $('restart').addEventListener('click', () => {
+      if (confirm('Vill du börja om?')) {
+        score = 0; level = 1; streak = 0; caught = 0; qCount = 0; coins = 0;
+        inventory = {}; shinyInventory = {};
+        updateStats();
+        renderDex();
+        makeQuestion();
+        saveProgress();
+      }
+    });
+
+    $('resetAllData').addEventListener('click', resetGame);
+    $('mode').addEventListener('click', () => {
+      const arr = ['mixed', '+', '-', '×', '÷'];
+      mode = arr[(arr.indexOf(mode) + 1) % arr.length];
+      updateModeText();
+      makeQuestion();
+    });
+
+    $('adminToggle').addEventListener('click', showAdminPanel);
+    $('sendMessage').addEventListener('click', async () => {
+      const text = $('adminMessage').value.trim();
+      const result = await api('/api/meta', {
+        method: 'POST',
+        body: JSON.stringify({ message: text })
+      });
+      if (result.ok) alert('✅ Meddelande sparat.');
+    });
+    $('clearMessage').addEventListener('click', async () => {
+      const result = await api('/api/meta', {
+        method: 'POST',
+        body: JSON.stringify({ message: '' })
+      });
+      if (result.ok) {
+        $('adminMessage').value = '';
+        alert('✅ Globalt meddelande rensat.');
+      }
+    });
+
+    $('spawnSearch').addEventListener('input', fillSpawnSuggestions);
+    $('spawnPokemon').addEventListener('click', spawnPokemonByName);
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        activeTab = tab.dataset.tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+        renderDex();
+      });
+    });
+
+    $('dexSearch').addEventListener('input', renderDex);
+    $('dexPageSize').addEventListener('change', renderDex);
+
+    updateModeText();
+    updateStats();
+    renderDex();
+    makeQuestion();
+    loadMeta();
+  </script>
+</body>
+</html>

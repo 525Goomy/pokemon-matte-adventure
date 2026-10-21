@@ -1,0 +1,12 @@
+{
+  "name": "pokemon-matte-adventure",
+  "version": "1.0.0",
+  "description": "Pokémon matte game with online accounts and persistent game state",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
