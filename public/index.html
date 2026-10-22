@@ -194,12 +194,17 @@
       gap: 18px;
       margin-top: 18px;
     }
+    .mission-grid {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 18px;
+    }
     .story-box, .event-box {
       background: linear-gradient(180deg, #f7fbff, #edf6ff);
       border: 1px solid #dbe8fb;
       border-radius: 18px;
       padding: 14px;
-      margin-top: 16px;
     }
     .story-box h3, .event-box h3 {
       margin-top: 0;
@@ -213,6 +218,43 @@
       margin-top: 8px;
       color: var(--ink);
       font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .story-line::before {
+      content: "✦";
+      color: var(--gold);
+      font-size: 16px;
+    }
+    .event-list {
+      display: grid;
+      gap: 8px;
+    }
+    .event-item {
+      background: linear-gradient(180deg, #ffffff, #f3f7ff);
+      border: 1px solid #dfeaf9;
+      border-left: 5px solid var(--blue);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 700;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+    }
+    .event-item.good {
+      border-left-color: var(--green);
+      background: linear-gradient(180deg, #f6fff9, #edfdf5);
+    }
+    .event-item.bad {
+      border-left-color: var(--red);
+      background: linear-gradient(180deg, #fff7f7, #fff1f1);
+    }
+    .event-item .meta {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 4px;
     }
     .event-banner {
       position: fixed;
@@ -341,6 +383,7 @@
     @media (max-width: 750px) {
       .stats { grid-template-columns: repeat(2,1fr); }
       .grid { grid-template-columns: 1fr; }
+      .mission-grid { grid-template-columns: 1fr; }
       .dexGrid { grid-template-columns: repeat(3,1fr); }
       .answers { grid-template-columns: 1fr; }
     }
@@ -421,16 +464,49 @@
       </div>
     </section>
 
-    <div class="story-box">
-      <h3>📖 Story / uppdrag</h3>
-      <div class="story-line">Du vandrar genom Pokémondjungeln och söker efter de sällsynta matte-Pokémonen.</div>
-      <div class="story-line">Varje rätt svar stärker din koppling till den nya generationen.</div>
-      <div class="story-line">Vänliga tränare lämnar meddelanden och tips i evenemangets logg.</div>
+    <div class="event-box" style="margin-top: 16px;">
+      <h3>📣 Event & logg</h3>
+      <div id="eventList" class="event-list"></div>
     </div>
 
-    <div class="event-box">
-      <h3>📣 Event & logg</h3>
-      <div id="eventList" style="display:grid; gap:6px;"></div>
+    <div class="mission-grid">
+      <div class="story-box">
+        <h3>📖 Story / uppdrag</h3>
+        <div class="story-line">Du vandrar genom Pokémondjungeln och söker efter de sällsynta matte-Pokémonen.</div>
+        <div class="story-line">Varje rätt svar stärker din koppling till den nya generationen.</div>
+        <div class="story-line">Vänliga tränare lämnar meddelanden och tips i evenemangets logg.</div>
+      </div>
+
+      <section class="section admin" id="adminPanel">
+        <h2 style="margin-top:0;">🛠️ Adminpanel</h2>
+
+        <div class="admin-box">
+          <h3>📢 Globalt meddelande</h3>
+          <textarea id="adminMessage" rows="4" style="width:100%; resize:vertical;"></textarea>
+          <div class="controls" style="justify-content:flex-start;">
+            <button class="btn blue" id="sendMessage">Skicka</button>
+            <button class="btn secondary" id="clearMessage">Rensa</button>
+          </div>
+        </div>
+
+        <div class="admin-box">
+          <h3>🌟 Spawn Pokémon</h3>
+          <div class="account-row" style="justify-content:flex-start;">
+            <input id="spawnSearch" list="spawnSuggestions" placeholder="# eller namn" style="flex:1;" />
+            <datalist id="spawnSuggestions"></datalist>
+            <label style="display:flex; align-items:center; gap:5px;">
+              <input type="checkbox" id="spawnShiny" /> Shiny
+            </label>
+            <button class="btn gold" id="spawnPokemon">Spawna</button>
+          </div>
+          <div id="spawnResult" style="margin-top:8px; color: var(--muted);"></div>
+        </div>
+
+        <div class="admin-box">
+          <h3>👥 Konton</h3>
+          <div id="userList"></div>
+        </div>
+      </section>
     </div>
 
     <div class="grid">
@@ -457,37 +533,6 @@
         <div id="indexStatus">Laddar...</div>
       </section>
     </div>
-
-    <section class="section admin" id="adminPanel">
-      <h2 style="margin-top:0;">🛠️ Adminpanel</h2>
-
-      <div class="admin-box">
-        <h3>📢 Globalt meddelande</h3>
-        <textarea id="adminMessage" rows="4" style="width:100%; resize:vertical;"></textarea>
-        <div class="controls" style="justify-content:flex-start;">
-          <button class="btn blue" id="sendMessage">Skicka</button>
-          <button class="btn secondary" id="clearMessage">Rensa</button>
-        </div>
-      </div>
-
-      <div class="admin-box">
-        <h3>🌟 Spawn Pokémon</h3>
-        <div class="account-row" style="justify-content:flex-start;">
-          <input id="spawnSearch" list="spawnSuggestions" placeholder="# eller namn" style="flex:1;" />
-          <datalist id="spawnSuggestions"></datalist>
-          <label style="display:flex; align-items:center; gap:5px;">
-            <input type="checkbox" id="spawnShiny" /> Shiny
-          </label>
-          <button class="btn gold" id="spawnPokemon">Spawna</button>
-        </div>
-        <div id="spawnResult" style="margin-top:8px; color: var(--muted);"></div>
-      </div>
-
-      <div class="admin-box">
-        <h3>👥 Konton</h3>
-        <div id="userList"></div>
-      </div>
-    </section>
   </div>
 
   <script>
@@ -523,12 +568,23 @@
 
     function $(id) { return document.getElementById(id); }
 
-    function pushEvent(message) {
+    function pushEvent(message, type = 'info') {
       const eventList = $('eventList');
       const item = document.createElement('div');
-      item.className = 'story-line';
-      item.textContent = message;
+      item.className = `event-item ${type}`;
+
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      const now = new Date();
+      meta.textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const text = document.createElement('div');
+      text.textContent = message;
+
+      item.appendChild(meta);
+      item.appendChild(text);
       eventList.prepend(item);
+
       while (eventList.children.length > 6) {
         eventList.removeChild(eventList.lastChild);
       }
@@ -707,7 +763,7 @@
         btn.style.background = '#d9f8e9';
         showBanner(`✅ ${currentPokemon.name} hittad!`);
         showSpawnAnimation(currentPokemon.name, currentPokemon.shiny);
-        pushEvent(`Du löste matteuppgiften och fångade ${currentPokemon.name}.`);
+        pushEvent(`Du löste matteuppgiften och fångade ${currentPokemon.name}.`, 'good');
       } else {
         streak = 0;
         score = Math.max(0, score - 4);
@@ -718,7 +774,7 @@
         const correctBtn = [...document.querySelectorAll('.ans')].find(x => x.textContent === String(answer));
         if (correctBtn) correctBtn.style.background = '#d9f8e9';
         showBanner(`❌ Rätt svar var ${answer}`);
-        pushEvent(`Någon Pokémon flydde, men du lärde dig rätt svar: ${answer}.`);
+        pushEvent(`Någon Pokémon flydde, men du lärde dig rätt svar: ${answer}.`, 'bad');
       }
 
       updateStats();
@@ -828,7 +884,7 @@
       updateStats();
       renderDex();
       makeQuestion();
-      pushEvent(`${currentUser} loggade in som ${currentRole === 'owner' ? 'Owner' : currentRole === 'admin' ? 'Admin' : 'Spelare'}.`);
+      pushEvent(`${currentUser} loggade in som ${currentRole === 'owner' ? 'Owner' : currentRole === 'admin' ? 'Admin' : 'Spelare'}.`, 'info');
       showBanner(`Välkommen ${currentUser}!`);
     }
 
@@ -841,7 +897,7 @@
       $('adminPanel').classList.remove('visible');
       $('adminToggle').textContent = '🛠 ÖPPNA ADMINPANEL';
       updateRoleUI();
-      pushEvent('Du loggade ut och återvände till startmenyn.');
+      pushEvent('Du loggade ut och återvände till startmenyn.', 'info');
     }
 
     async function createAccount() {
@@ -898,7 +954,7 @@
       renderDex();
       makeQuestion();
       saveProgress();
-      pushEvent('Spelprogresseringen återställdes.');
+      pushEvent('Spelprogresseringen återställdes.', 'info');
     }
 
     function showAdminPanel() {
@@ -915,7 +971,7 @@
         panel.classList.add('visible');
         btn.textContent = '🛠 STÄNG ADMINPANEL';
         renderUserList();
-        pushEvent('Adminpanelen öppnades.');
+        pushEvent('Adminpanelen öppnades.', 'info');
       }
     }
 
@@ -994,7 +1050,7 @@
       $('spawnResult').textContent = `✅ Spawnade ${pokemon.n} ${shiny ? '✨ shiny' : ''} för alla konton.`;
       showBanner(`Spawnade ${pokemon.n}!`);
       showSpawnAnimation(pokemon.n, shiny);
-      pushEvent(`Adminen spawna ${pokemon.n} till världen.`);
+      pushEvent(`Adminen spawna ${pokemon.n} till världen.`, 'good');
       renderUserList();
       renderDex();
     }
@@ -1017,7 +1073,7 @@
         renderDex();
         makeQuestion();
         saveProgress();
-        pushEvent('En ny resa började.');
+        pushEvent('En ny resa började.', 'info');
       }
     });
 
@@ -1063,8 +1119,8 @@
     $('dexSearch').addEventListener('input', renderDex);
     $('dexPageSize').addEventListener('change', renderDex);
 
-    pushEvent('Pokémon-världen är redo för en ny matteäventyr.');
-    pushEvent('Logga in för att börja din resa.');
+    pushEvent('Pokémon-världen är redo för en ny matteäventyr.', 'info');
+    pushEvent('Logga in för att börja din resa.', 'info');
     updateRoleUI();
     updateModeText();
     updateStats();
