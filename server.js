@@ -83,11 +83,23 @@ function isAdminUser(user, name) {
   return Boolean(builtIn && (builtIn.role === 'admin' || builtIn.role === 'owner'));
 }
 
+function normalizeRole(user, fallbackName) {
+  const name = String(fallbackName || user?.username || '').trim();
+  const builtIn = getDefaultUser(name);
+  if (builtIn) return builtIn.role;
+  if (user?.role === 'owner') return 'owner';
+  if (user?.role === 'admin') return 'admin';
+  if (user?.isAdmin) return 'admin';
+  return 'player';
+}
+
 function sanitizeUser(user) {
+  const role = normalizeRole(user, user.username);
   return {
     username: user.username,
-    role: user.role || (user.isAdmin ? 'admin' : 'player'),
-    isAdmin: isAdminUser(user, user.username),
+    role,
+    isAdmin: role === 'admin' || role === 'owner',
+    isOwner: role === 'owner',
     score: Number(user.score || 0),
     level: Number(user.level || 1),
     streak: Number(user.streak || 0),
@@ -99,7 +111,7 @@ function sanitizeUser(user) {
   };
 }
 
-function ensureBuiltInAccount(name, passwordOverride) {
+function ensureBuiltInAccount(name) {
   const users = getUsers();
   const defaultUser = getDefaultUser(name);
   if (!defaultUser) return users;
@@ -108,7 +120,7 @@ function ensureBuiltInAccount(name, passwordOverride) {
   if (!users[existingKey]) {
     users[existingKey] = {
       username: defaultUser.username,
-      password: hashPassword(passwordOverride || defaultUser.password),
+      password: hashPassword(defaultUser.password),
       isAdmin: true,
       role: defaultUser.role,
       score: 0,
@@ -180,9 +192,8 @@ app.post('/api/login', (req, res) => {
   }
 
   let users = getUsers();
-  const builtIn = getDefaultUser(name);
-  if (builtIn) {
-    users = ensureBuiltInAccount(name, builtIn.password);
+  if (isBuiltInUser(name)) {
+    users = ensureBuiltInAccount(name);
   }
 
   const key = getUserKey(users, name);
@@ -195,8 +206,8 @@ app.post('/api/login', (req, res) => {
     return res.status(401).json({ error: 'Fel tränarnamn eller lösenord.' });
   }
 
-  user.isAdmin = isAdminUser(user, key);
-  user.role = user.role || (user.isAdmin ? 'admin' : 'player');
+  user.role = normalizeRole(user, key);
+  user.isAdmin = user.role === 'admin' || user.role === 'owner';
   saveUsers(users);
 
   res.json({ success: true, user: sanitizeUser(user) });
@@ -222,8 +233,8 @@ app.post('/api/save', (req, res) => {
     return res.status(401).json({ error: 'Fel tränarnamn eller lösenord.' });
   }
 
-  user.isAdmin = isAdminUser(user, key);
-  user.role = user.role || (user.isAdmin ? 'admin' : 'player');
+  user.role = normalizeRole(user, key);
+  user.isAdmin = user.role === 'admin' || user.role === 'owner';
 
   const saved = {
     ...user,
@@ -247,7 +258,9 @@ app.get('/api/users', (_, res) => {
   const users = getUsers();
   const list = Object.keys(users).map((name) => ({
     username: name,
+    role: normalizeRole(users[name], name),
     isAdmin: isAdminUser(users[name], name),
+    isOwner: normalizeRole(users[name], name) === 'owner',
     caught: Number(users[name].caught || 0),
     coins: Number(users[name].coins || 0),
     score: Number(users[name].score || 0),
@@ -270,7 +283,7 @@ app.post('/api/meta', (req, res) => {
   const users = getUsers();
   const key = getUserKey(users, name);
   if (!key || users[key].password !== hashPassword(pass) || !isAdminUser(users[key], key)) {
-    return res.status(403).json({ error: 'Endast admin kan ändra globalt meddelande.' });
+    return res.status(403).json({ error: 'Endast admin/owner kan ändra globalt meddelande.' });
   }
 
   const meta = readJson(META_FILE);
@@ -288,7 +301,7 @@ app.post('/api/spawn', (req, res) => {
   const users = getUsers();
   const key = getUserKey(users, name);
   if (!key || users[key].password !== hashPassword(pass) || !isAdminUser(users[key], key)) {
-    return res.status(403).json({ error: 'Endast admin kan spawna Pokémon.' });
+    return res.status(403).json({ error: 'Endast admin/owner kan spawna Pokémon.' });
   }
 
   Object.keys(users).forEach((accountName) => {
