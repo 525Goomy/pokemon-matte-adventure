@@ -74,6 +74,12 @@
       height: 130px;
       object-fit: contain;
       margin: 0 auto 6px;
+      filter: drop-shadow(0 8px 18px rgba(0,0,0,.12));
+      animation: floaty 2s ease-in-out infinite alternate;
+    }
+    @keyframes floaty {
+      from { transform: translateY(0); }
+      to { transform: translateY(-6px); }
     }
     .name {
       text-align: center;
@@ -108,6 +114,11 @@
       font-size: 22px;
       font-weight: 900;
       cursor: pointer;
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .ans:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 18px rgba(47,128,237,.12);
     }
     .ans:disabled { opacity: .75; }
     .msg {
@@ -182,6 +193,82 @@
       grid-template-columns: 1fr 1fr;
       gap: 18px;
       margin-top: 18px;
+    }
+    .story-box, .event-box {
+      background: linear-gradient(180deg, #f7fbff, #edf6ff);
+      border: 1px solid #dbe8fb;
+      border-radius: 18px;
+      padding: 14px;
+      margin-top: 16px;
+    }
+    .story-box h3, .event-box h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    .story-line {
+      background: #fff;
+      border: 1px solid #e8edf6;
+      border-radius: 12px;
+      padding: 8px 10px;
+      margin-top: 8px;
+      color: var(--ink);
+      font-weight: 700;
+    }
+    .event-banner {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(27, 39, 57, 0.96);
+      color: white;
+      padding: 14px 18px;
+      border-radius: 999px;
+      box-shadow: 0 12px 24px rgba(0,0,0,.2);
+      z-index: 200;
+      max-width: 90vw;
+      text-align: center;
+      font-weight: 800;
+      display: none;
+      opacity: 0;
+      transition: opacity .25s ease;
+    }
+    .event-banner.visible {
+      display: block;
+      opacity: 1;
+    }
+    .spawn-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.38);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+    }
+    .spawn-overlay.visible {
+      display: flex;
+    }
+    .spawn-card {
+      background: linear-gradient(135deg, #eef5ff, #fffef2);
+      border: 2px solid rgba(255,255,255,.8);
+      border-radius: 22px;
+      padding: 26px;
+      min-width: min(420px, 80vw);
+      text-align: center;
+      box-shadow: 0 20px 36px rgba(0,0,0,.25);
+      animation: pop .45s ease;
+    }
+    @keyframes pop {
+      0% { transform: scale(.75); opacity: 0; }
+      70% { transform: scale(1.04); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .spawn-card img {
+      width: 140px;
+      height: 140px;
+      object-fit: contain;
+      margin: 0 auto 10px;
+      display: block;
     }
     .dexGrid {
       display: grid;
@@ -260,6 +347,17 @@
   </style>
 </head>
 <body>
+  <div id="eventBanner" class="event-banner"></div>
+
+  <div class="spawn-overlay" id="spawnOverlay">
+    <div class="spawn-card">
+      <img id="spawnImage" src="" alt="Pokémon" />
+      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">Ny Pokémon!</div>
+      <div id="spawnName" style="font-size: 30px; font-weight: 900; margin: 6px 0 8px;">Pikachu</div>
+      <div id="spawnText" style="font-size: 16px; color: var(--ink); font-weight: 700;">Du fångade en ny Pokémon.</div>
+    </div>
+  </div>
+
   <div class="wrap">
     <header>
       <h1>⚡ Pokémon Matteäventyr ⚡</h1>
@@ -292,6 +390,9 @@
       <div id="loggedIn" class="hidden">
         <div style="text-align:center;">
           <b>Inloggad som <span id="currentUser"></span></b>
+          <div style="margin-top: 6px; color: var(--muted);">
+            Roll: <span id="currentRole" style="font-weight: 900; color: var(--ink);">Spelare</span>
+          </div>
         </div>
         <div class="account-row" style="margin-top: 10px;">
           <button class="btn secondary" id="logout">Logga ut</button>
@@ -319,6 +420,18 @@
         <b id="badge">🏅 Nybörjartränare</b>
       </div>
     </section>
+
+    <div class="story-box">
+      <h3>📖 Story / uppdrag</h3>
+      <div class="story-line">Du vandrar genom Pokémondjungeln och söker efter de sällsynta matte-Pokémonen.</div>
+      <div class="story-line">Varje rätt svar stärker din koppling till den nya generationen.</div>
+      <div class="story-line">Vänliga tränare lämnar meddelanden och tips i evenemangets logg.</div>
+    </div>
+
+    <div class="event-box">
+      <h3>📣 Event & logg</h3>
+      <div id="eventList" style="display:grid; gap:6px;"></div>
+    </div>
 
     <div class="grid">
       <section class="section">
@@ -400,6 +513,7 @@
     let coins = 0;
     let currentUser = null;
     let currentPassword = null;
+    let currentRole = 'player';
     let mode = "mixed";
     let currentPokemon = null;
     let answer = null;
@@ -408,6 +522,41 @@
     let activeTab = "normal";
 
     function $(id) { return document.getElementById(id); }
+
+    function pushEvent(message) {
+      const eventList = $('eventList');
+      const item = document.createElement('div');
+      item.className = 'story-line';
+      item.textContent = message;
+      eventList.prepend(item);
+      while (eventList.children.length > 6) {
+        eventList.removeChild(eventList.lastChild);
+      }
+    }
+
+    function showBanner(message) {
+      const banner = $('eventBanner');
+      banner.textContent = message;
+      banner.classList.add('visible');
+      clearTimeout(showBanner._timer);
+      showBanner._timer = setTimeout(() => {
+        banner.classList.remove('visible');
+      }, 1800);
+    }
+
+    function showSpawnAnimation(pokemonName, shiny) {
+      const overlay = $('spawnOverlay');
+      const img = $('spawnImage');
+      const name = $('spawnName');
+      const text = $('spawnText');
+
+      const id = mons.find(p => p.n.toLowerCase() === pokemonName.toLowerCase())?.id || 25;
+      img.src = spriteUrl(id, shiny);
+      name.textContent = pokemonName;
+      text.textContent = shiny ? 'Du fångade en glänsande shiny Pokémon!' : 'Du fångade en ny Pokémon!';
+      overlay.classList.add('visible');
+      setTimeout(() => overlay.classList.remove('visible'), 1800);
+    }
 
     function getDex(id) {
       return mons.find(p => p.id === Number(id)) || null;
@@ -432,6 +581,12 @@
       });
       const data = await response.json();
       return { ok: response.ok, data };
+    }
+
+    function updateRoleUI() {
+      const isPrivileged = currentRole === 'admin' || currentRole === 'owner';
+      $('adminToggle').style.display = isPrivileged ? 'inline-block' : 'none';
+      $('currentRole').textContent = currentRole === 'owner' ? 'Owner' : currentRole === 'admin' ? 'Admin' : 'Spelare';
     }
 
     function updateStats() {
@@ -550,6 +705,9 @@
         $('msg').textContent = '✅ Rätt! +10 coins';
         $('msg').className = 'msg good';
         btn.style.background = '#d9f8e9';
+        showBanner(`✅ ${currentPokemon.name} hittad!`);
+        showSpawnAnimation(currentPokemon.name, currentPokemon.shiny);
+        pushEvent(`Du löste matteuppgiften och fångade ${currentPokemon.name}.`);
       } else {
         streak = 0;
         score = Math.max(0, score - 4);
@@ -559,6 +717,8 @@
         btn.style.background = '#ffe0e0';
         const correctBtn = [...document.querySelectorAll('.ans')].find(x => x.textContent === String(answer));
         if (correctBtn) correctBtn.style.background = '#d9f8e9';
+        showBanner(`❌ Rätt svar var ${answer}`);
+        pushEvent(`Någon Pokémon flydde, men du lärde dig rätt svar: ${answer}.`);
       }
 
       updateStats();
@@ -647,6 +807,7 @@
     function loginUser(name, pass, data) {
       currentUser = name;
       currentPassword = pass;
+      currentRole = data.role || (data.isOwner ? 'owner' : data.isAdmin ? 'admin' : 'player');
       score = Number(data.score || 0);
       level = Number(data.level || 1);
       streak = Number(data.streak || 0);
@@ -662,19 +823,25 @@
       $('currentUser').textContent = currentUser;
       $('password').value = '';
 
+      updateRoleUI();
       updateModeText();
       updateStats();
       renderDex();
       makeQuestion();
+      pushEvent(`${currentUser} loggade in som ${currentRole === 'owner' ? 'Owner' : currentRole === 'admin' ? 'Admin' : 'Spelare'}.`);
+      showBanner(`Välkommen ${currentUser}!`);
     }
 
     function logoutUser() {
       currentUser = null;
       currentPassword = null;
+      currentRole = 'player';
       $('loggedIn').classList.add('hidden');
       $('loggedOut').classList.remove('hidden');
       $('adminPanel').classList.remove('visible');
       $('adminToggle').textContent = '🛠 ÖPPNA ADMINPANEL';
+      updateRoleUI();
+      pushEvent('Du loggade ut och återvände till startmenyn.');
     }
 
     async function createAccount() {
@@ -731,11 +898,16 @@
       renderDex();
       makeQuestion();
       saveProgress();
+      pushEvent('Spelprogresseringen återställdes.');
     }
 
     function showAdminPanel() {
       const panel = $('adminPanel');
       const btn = $('adminToggle');
+      if (!['admin', 'owner'].includes(currentRole)) {
+        alert('Endast admin/owner kan öppna adminpanelen.');
+        return;
+      }
       if (panel.classList.contains('visible')) {
         panel.classList.remove('visible');
         btn.textContent = '🛠 ÖPPNA ADMINPANEL';
@@ -743,6 +915,7 @@
         panel.classList.add('visible');
         btn.textContent = '🛠 STÄNG ADMINPANEL';
         renderUserList();
+        pushEvent('Adminpanelen öppnades.');
       }
     }
 
@@ -761,7 +934,8 @@
         row.style.borderBottom = '1px solid #e5e7eb';
 
         const meta = document.createElement('div');
-        meta.innerHTML = `<b>${user.username}</b><div style="color:#6d7a8d;">${user.caught || 0} fångade • ${user.coins || 0} coins</div>`;
+        const roleText = user.isOwner ? 'Owner' : user.isAdmin ? 'Admin' : 'Spelare';
+        meta.innerHTML = `<b>${user.username}</b><div style="color:#6d7a8d;">${roleText} • ${user.caught || 0} fångade • ${user.coins || 0} coins</div>`;
 
         const button = document.createElement('button');
         button.className = 'btn secondary';
@@ -801,10 +975,15 @@
         return;
       }
 
+      if (!['admin', 'owner'].includes(currentRole)) {
+        alert('Endast admin/owner kan spawna Pokémon.');
+        return;
+      }
+
       const shiny = $('spawnShiny').checked;
       const result = await api('/api/spawn', {
         method: 'POST',
-        body: JSON.stringify({ pokemonId: pokemon.id, shiny })
+        body: JSON.stringify({ username: currentUser, password: currentPassword, pokemonId: pokemon.id, shiny })
       });
 
       if (!result.ok) {
@@ -813,6 +992,9 @@
       }
 
       $('spawnResult').textContent = `✅ Spawnade ${pokemon.n} ${shiny ? '✨ shiny' : ''} för alla konton.`;
+      showBanner(`Spawnade ${pokemon.n}!`);
+      showSpawnAnimation(pokemon.n, shiny);
+      pushEvent(`Adminen spawna ${pokemon.n} till världen.`);
       renderUserList();
       renderDex();
     }
@@ -835,6 +1017,7 @@
         renderDex();
         makeQuestion();
         saveProgress();
+        pushEvent('En ny resa började.');
       }
     });
 
@@ -851,14 +1034,14 @@
       const text = $('adminMessage').value.trim();
       const result = await api('/api/meta', {
         method: 'POST',
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ username: currentUser, password: currentPassword, message: text })
       });
       if (result.ok) alert('✅ Meddelande sparat.');
     });
     $('clearMessage').addEventListener('click', async () => {
       const result = await api('/api/meta', {
         method: 'POST',
-        body: JSON.stringify({ message: '' })
+        body: JSON.stringify({ username: currentUser, password: currentPassword, message: '' })
       });
       if (result.ok) {
         $('adminMessage').value = '';
@@ -880,6 +1063,9 @@
     $('dexSearch').addEventListener('input', renderDex);
     $('dexPageSize').addEventListener('change', renderDex);
 
+    pushEvent('Pokémon-världen är redo för en ny matteäventyr.');
+    pushEvent('Logga in för att börja din resa.');
+    updateRoleUI();
     updateModeText();
     updateStats();
     renderDex();
