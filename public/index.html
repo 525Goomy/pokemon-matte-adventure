@@ -536,7 +536,7 @@
   </div>
 
   <script>
-    const mons = [
+    const FALLBACK_MONS = [
       { id:1, n:"Bulbasaur" }, { id:2, n:"Ivysaur" }, { id:3, n:"Venusaur" },
       { id:4, n:"Charmander" }, { id:5, n:"Charmeleon" }, { id:6, n:"Charizard" },
       { id:7, n:"Squirtle" }, { id:8, n:"Wartortle" }, { id:9, n:"Blastoise" },
@@ -549,6 +549,32 @@
       { id:150, n:"Mewtwo" }, { id:151, n:"Mew" }, { id:245, n:"Suicune" },
       { id:249, n:"Lugia" }, { id:250, n:"Ho-Oh" }, { id:493, n:"Arceus" }
     ];
+
+    let mons = [...FALLBACK_MONS];
+
+    function toTitleName(name) {
+      return name
+        .split('-')
+        .map(part => part ? part.charAt(0).toUpperCase() + part.slice(1) : '')
+        .join(' ');
+    }
+
+    async function loadAllMons() {
+      try {
+        const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
+        if (!response.ok) throw new Error('Failed to fetch Pokémon list');
+        const data = await response.json();
+        mons = (data.results || []).map((pokemon, index) => ({
+          id: index + 1,
+          n: toTitleName(pokemon.name)
+        }));
+        renderDex();
+        fillSpawnSuggestions();
+      } catch (error) {
+        console.warn('Using fallback Pokémon list:', error);
+        mons = [...FALLBACK_MONS];
+      }
+    }
 
     let score = 0;
     let level = 1;
@@ -731,6 +757,10 @@
     }
 
     function rollPokemon() {
+      if (!mons.length) {
+        const fallback = FALLBACK_MONS[rand(0, FALLBACK_MONS.length - 1)];
+        return { id: fallback.id, name: fallback.n, shiny: false, rarity: 'Vanlig' };
+      }
       const p = mons[rand(0, mons.length - 1)];
       const shiny = Math.random() < 0.12;
       return {
@@ -835,8 +865,9 @@
       const total = mons.length;
       const caughtTotal = Object.keys(inventory).length + Object.keys(shinyInventory).length;
       $('indexStatus').innerHTML = `
-        <b>Vanligt index:</b> ${caughtTotal} / ${total} (${Math.round((caughtTotal / total) * 100)}%)<br>
-        <b>Shiny:</b> ${Object.keys(shinyInventory).length} / ${total}
+        <b>Totalt i listan:</b> ${total} Pokémon<br>
+        <b>Fångade:</b> ${caughtTotal} / ${total} (${Math.round((caughtTotal / total) * 100)}%)<br>
+        <b>Shiny:</b> ${Object.keys(shinyInventory).length}
       `;
     }
 
@@ -1011,7 +1042,15 @@
       const q = $('spawnSearch').value.trim().toLowerCase();
       const datalist = $('spawnSuggestions');
       datalist.innerHTML = '';
-      if (!q) return;
+      if (!q) {
+        const top = mons.slice(0, 20);
+        top.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.n;
+          datalist.appendChild(opt);
+        });
+        return;
+      }
 
       mons.filter(p => p.n.toLowerCase().includes(q)).slice(0, 20).forEach(p => {
         const opt = document.createElement('option');
@@ -1127,6 +1166,7 @@
     renderDex();
     makeQuestion();
     loadMeta();
+    loadAllMons();
   </script>
 </body>
 </html>
