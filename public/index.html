@@ -470,15 +470,6 @@
 <body>
   <div id="eventBanner" class="event-banner"></div>
 
-  <div class="spawn-overlay" id="spawnOverlay">
-    <div class="spawn-card">
-      <img id="spawnImage" src="" alt="Pokémon" />
-      <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">Ny Pokémon!</div>
-      <div id="spawnName" style="font-size: 30px; font-weight: 900; margin: 6px 0 8px;">Pikachu</div>
-      <div id="spawnText" style="font-size: 16px; color: var(--ink); font-weight: 700;">Du fångade en ny Pokémon.</div>
-    </div>
-  </div>
-
   <div class="wrap">
     <header>
       <h1>⚡ Pokémon Matteäventyr ⚡</h1>
@@ -710,9 +701,9 @@
       ] }
     };
 
-    let mons = []; 
-    let currentUser = null; 
-    let currentPassword = null; 
+    let mons = [];
+    let currentUser = null;
+    let currentPassword = null;
     let currentRole = 'player';
     let mode = 'mixed';
     let score = 0;
@@ -728,11 +719,8 @@
     let currentPokemon = null;
     let answer = null;
     let activeBoard = 'money';
-    let lastRewardCheck = 0;
 
     function $(id) { return document.getElementById(id); }
-
-    function getNow() { return Date.now(); }
 
     function getCustomMonster(id) {
       return SPECIAL_MONSTERS.find(m => m.id === id) || null;
@@ -759,7 +747,7 @@
       const trait = traitForPokemon(id);
       const base = (mon.baseValue || 250) * (trait.multiplier || 1);
       const quantity = Math.max(1, count);
-      return Math.round(base * quantity); 
+      return Math.round(base * quantity);
     }
 
     function spriteUrl(id, shiny = false) {
@@ -1054,8 +1042,7 @@
         $('msg').textContent = `✅ Rätt! +10 coins +20 💰`;
         $('msg').className = 'msg good';
         btn.style.background = '#d9f8e9';
-        showBanner(`Grattis! Du fångade ${realPokemonName}!`);
-        pushEvent(`Grattis! Du fångade ${realPokemonName} (${quantity} totalt).`, 'good');
+        pushEvent(`Ny fångst: ${realPokemonName} (${quantity} totalt).`, 'good');
       } else {
         streak = 0;
         score = Math.max(0, score - 4);
@@ -1065,7 +1052,6 @@
         btn.style.background = '#ffe0e0';
         const correctBtn = [...document.querySelectorAll('.ans')].find(x => x.textContent === String(answer));
         if (correctBtn) correctBtn.style.background = '#d9f8e9';
-        showBanner(`❌ Rätt svar var ${answer}`);
         pushEvent(`Fel svar. Rätt svar var ${answer}.`, 'bad');
       }
 
@@ -1084,19 +1070,16 @@
         if (!hasInventory('king-king-king')) {
           inventory['king-king-king'] = (inventory['king-king-king'] || 0) + 1;
           pushEvent('🥇 Du rankade #1 i världen och fick King King King!', 'good');
-          showBanner('🥇 #1 världsrank! King King King tilldelad!');
         }
       } else if (currentIndex === 1) {
         if (!hasInventory('bob')) {
           inventory['bob'] = (inventory['bob'] || 0) + 1;
           pushEvent('🥈 Du rankade #2 i världen och fick Bob!', 'good');
-          showBanner('🥈 #2 världsrank! Bob tilldelad!');
         }
       } else if (currentIndex === 2) {
         if (!hasInventory('pikachu-rank')) {
           inventory['pikachu-rank'] = (inventory['pikachu-rank'] || 0) + 1;
           pushEvent('🥉 Du rankade #3 i världen och fick en Pikachu rank!', 'good');
-          showBanner('🥉 #3 världsrank! Pikachu rank tilldelad!');
         }
       }
       renderInventory();
@@ -1208,7 +1191,6 @@
       renderInventory();
       saveProgress();
       pushEvent(`${getPokemonMeta(id).n} såldes för ${value} 💰.`, 'good');
-      showBanner(`${getPokemonMeta(id).n} såld! +${value} 💰`);
     }
 
     function getLeaderboardRows() {
@@ -1410,12 +1392,10 @@
         money += reward;
         score += 35;
         pushEvent(`Du vann mot ${enemy.n}! +${reward} 💰`, 'good');
-        showBanner(`⚔ Seger mot ${enemy.n}!`);
       } else {
         const penalty = 15;
         money = Math.max(0, money - penalty);
         pushEvent(`Du förlorade mot ${enemy.n}. -${penalty} 💰`, 'bad');
-        showBanner(`⚔ Förlust mot ${enemy.n}`);
       }
       updateStats();
       saveProgress();
@@ -1455,7 +1435,6 @@
         const msg = $('adminMessage').value.trim();
         if (!msg) return alert('Skriv ett meddelande först.');
         pushEvent(`Admin: ${msg}`, 'info');
-        showBanner('Globalt meddelande skickat!');
       });
       $('clearMessage').addEventListener('click', () => { $('adminMessage').value = ''; });
       $('spawnPokemon').addEventListener('click', () => {
@@ -1476,7 +1455,6 @@
         renderInventory();
         renderTradeOptions();
         pushEvent(`Admin spawnade ${find.n}.`, 'good');
-        showBanner(`${find.n} spawnad!`);
       });
       $('dexSearch').addEventListener('input', renderDex);
       $('dexPageSize').addEventListener('change', renderDex);
