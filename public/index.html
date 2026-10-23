@@ -24,7 +24,7 @@
       color: var(--ink);
     }
     .wrap {
-      max-width: 1100px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 18px;
     }
@@ -380,6 +380,38 @@
       border-radius: 16px;
       padding: 14px;
     }
+    .admin-layout {
+      display: grid;
+      gap: 14px;
+    }
+    .event-admin-list {
+      display: grid;
+      gap: 10px;
+    }
+    .event-admin-item {
+      background: linear-gradient(180deg, #ffffff, #f5f9ff);
+      border: 1px solid #dfeaf9;
+      border-left: 5px solid #8ab4ff;
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .event-admin-item.active {
+      border-left-color: var(--green);
+      background: linear-gradient(180deg, #f8fff9, #eefaf3);
+    }
+    .event-admin-item .label {
+      font-weight: 900;
+    }
+    .event-admin-item .meta {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
     @media (max-width: 750px) {
       .stats { grid-template-columns: repeat(2,1fr); }
       .grid { grid-template-columns: 1fr; }
@@ -480,31 +512,38 @@
       <section class="section admin" id="adminPanel">
         <h2 style="margin-top:0;">🛠️ Adminpanel</h2>
 
-        <div class="admin-box">
-          <h3>📢 Globalt meddelande</h3>
-          <textarea id="adminMessage" rows="4" style="width:100%; resize:vertical;"></textarea>
-          <div class="controls" style="justify-content:flex-start;">
-            <button class="btn blue" id="sendMessage">Skicka</button>
-            <button class="btn secondary" id="clearMessage">Rensa</button>
+        <div class="admin-layout">
+          <div class="admin-box">
+            <h3>📢 Globalt meddelande</h3>
+            <textarea id="adminMessage" rows="4" style="width:100%; resize:vertical;"></textarea>
+            <div class="controls" style="justify-content:flex-start;">
+              <button class="btn blue" id="sendMessage">Skicka</button>
+              <button class="btn secondary" id="clearMessage">Rensa</button>
+            </div>
           </div>
-        </div>
 
-        <div class="admin-box">
-          <h3>🌟 Spawn Pokémon</h3>
-          <div class="account-row" style="justify-content:flex-start;">
-            <input id="spawnSearch" list="spawnSuggestions" placeholder="# eller namn" style="flex:1;" />
-            <datalist id="spawnSuggestions"></datalist>
-            <label style="display:flex; align-items:center; gap:5px;">
-              <input type="checkbox" id="spawnShiny" /> Shiny
-            </label>
-            <button class="btn gold" id="spawnPokemon">Spawna</button>
+          <div class="admin-box">
+            <h3>🎉 Eventhantering</h3>
+            <div id="eventAdminList" class="event-admin-list"></div>
           </div>
-          <div id="spawnResult" style="margin-top:8px; color: var(--muted);"></div>
-        </div>
 
-        <div class="admin-box">
-          <h3>👥 Konton</h3>
-          <div id="userList"></div>
+          <div class="admin-box">
+            <h3>🌟 Spawn Pokémon</h3>
+            <div class="account-row" style="justify-content:flex-start;">
+              <input id="spawnSearch" list="spawnSuggestions" placeholder="# eller namn" style="flex:1;" />
+              <datalist id="spawnSuggestions"></datalist>
+              <label style="display:flex; align-items:center; gap:5px;">
+                <input type="checkbox" id="spawnShiny" /> Shiny
+              </label>
+              <button class="btn gold" id="spawnPokemon">Spawna</button>
+            </div>
+            <div id="spawnResult" style="margin-top:8px; color: var(--muted);"></div>
+          </div>
+
+          <div class="admin-box">
+            <h3>👥 Konton</h3>
+            <div id="userList"></div>
+          </div>
         </div>
       </section>
     </div>
@@ -550,7 +589,131 @@
       { id:249, n:"Lugia" }, { id:250, n:"Ho-Oh" }, { id:493, n:"Arceus" }
     ];
 
+    const SPECIAL_EVENT_MONSTERS = [
+      { id: "william-king", n: "William King", event: "william", rarity: "👑 William Event" },
+      { id: "william-aura-king", n: "William Aura King", event: "william", rarity: "✨ William Event" },
+      { id: "linnea", n: "Linnea", event: "linnea", rarity: "🌸 Linnea Event" },
+      { id: "theo-king", n: "Theo King", event: "theo", rarity: "👑 Theo Event" },
+      { id: "ellen", n: "Ellen", event: "dumpling", rarity: "🧁 Dumpling Event" },
+      { id: "manna", n: "Manna", event: "manna", rarity: "💫 Manna Event" },
+      { id: "tilda", n: "Tilda", event: "tilda", rarity: "🌼 Tilda Event" },
+      { id: "bob", n: "Bob", event: "bob", rarity: "💥 Bob Event" }
+    ];
+
+    const EVENT_CONFIG = {
+      william: {
+        label: "William Event",
+        active: false,
+        rate: 0.5,
+        rewards: [
+          { id: "william-king", name: "William King", chance: 0.5 },
+          { id: "william-aura-king", name: "William Aura King", chance: 0.005 }
+        ]
+      },
+      linnea: {
+        label: "Linnea Event",
+        active: false,
+        rate: 3,
+        rewards: [
+          { id: "linnea", name: "Linnea", chance: 100 }
+        ]
+      },
+      theo: {
+        label: "Theo Event",
+        active: false,
+        rate: 0.1,
+        rewards: [
+          { id: "theo-king", name: "Theo King", chance: 100 }
+        ]
+      },
+      dumpling: {
+        label: "Dumpling Event",
+        active: false,
+        rate: 0.8,
+        rewards: [
+          { id: "ellen", name: "Ellen", chance: 100 }
+        ]
+      },
+      manna: {
+        label: "Manna Event",
+        active: false,
+        rate: 0.9,
+        rewards: [
+          { id: "manna", name: "Manna", chance: 100 }
+        ]
+      },
+      tilda: {
+        label: "Tilda Event",
+        active: false,
+        rate: 0.8,
+        rewards: [
+          { id: "tilda", name: "Tilda", chance: 100 }
+        ]
+      },
+      bob: {
+        label: "Bob Event",
+        active: false,
+        rate: 0.5,
+        rewards: [
+          { id: "bob", name: "Bob", chance: 100 }
+        ]
+      }
+    };
+
     let mons = [...FALLBACK_MONS];
+    let score = 0;
+    let level = 1;
+    let streak = 0;
+    let caught = 0;
+    let qCount = 0;
+    let coins = 0;
+    let currentUser = null;
+    let currentPassword = null;
+    let currentRole = 'player';
+    let mode = 'mixed';
+    let currentPokemon = null;
+    let answer = null;
+    let inventory = {};
+    let shinyInventory = {};
+    let activeTab = 'normal';
+
+    function $(id) { return document.getElementById(id); }
+
+    function customMonsterMeta(id) {
+      return SPECIAL_EVENT_MONSTERS.find(m => m.id === id) || null;
+    }
+
+    function customMonsterSvg(label, accent = '#2f80ed', bg = '#f3f7ff') {
+      const text = label.slice(0, 2).toUpperCase();
+      return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+          <rect width="128" height="128" rx="24" fill="${bg}"/>
+          <circle cx="64" cy="64" r="46" fill="${accent}" opacity="0.18"/>
+          <text x="50%" y="54%" text-anchor="middle" font-size="26" font-family="Arial, sans-serif" font-weight="900" fill="${accent}">${text}</text>
+          <text x="50%" y="75%" text-anchor="middle" font-size="10" font-family="Arial, sans-serif" font-weight="700" fill="#1a2333">EVENT</text>
+        </svg>
+      `);
+    }
+
+    function spriteUrl(id, shiny = false) {
+      if (typeof id === 'string') {
+        const meta = customMonsterMeta(id);
+        if (meta) {
+          const palette = {
+            'william-king': '#ffbf47',
+            'william-aura-king': '#8a5cf6',
+            'linnea': '#f58ac7',
+            'theo-king': '#5d8cff',
+            'ellen': '#f6bd60',
+            'manna': '#6ad3b5',
+            'tilda': '#d490ff',
+            'bob': '#ff6a6a'
+          };
+          return customMonsterSvg(meta.n, palette[id] || '#2f80ed', '#f9fbff');
+        }
+      }
+      return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shiny ? 'shiny/' : ''}${id}.png`;
+    }
 
     function toTitleName(name) {
       return name
@@ -568,31 +731,30 @@
           id: index + 1,
           n: toTitleName(pokemon.name)
         }));
-        renderDex();
-        fillSpawnSuggestions();
+        mons = mons.concat(SPECIAL_EVENT_MONSTERS.map((monster, index) => ({
+          id: monster.id,
+          n: monster.n,
+          custom: true,
+          event: monster.event,
+          rarity: monster.rarity,
+          sortId: 20000 + index
+        })));
       } catch (error) {
         console.warn('Using fallback Pokémon list:', error);
         mons = [...FALLBACK_MONS];
+        mons = mons.concat(SPECIAL_EVENT_MONSTERS.map((monster, index) => ({
+          id: monster.id,
+          n: monster.n,
+          custom: true,
+          event: monster.event,
+          rarity: monster.rarity,
+          sortId: 20000 + index
+        })));
       }
+      renderDex();
+      fillSpawnSuggestions();
+      renderAdminEvents();
     }
-
-    let score = 0;
-    let level = 1;
-    let streak = 0;
-    let caught = 0;
-    let qCount = 0;
-    let coins = 0;
-    let currentUser = null;
-    let currentPassword = null;
-    let currentRole = 'player';
-    let mode = "mixed";
-    let currentPokemon = null;
-    let answer = null;
-    let inventory = {};
-    let shinyInventory = {};
-    let activeTab = "normal";
-
-    function $(id) { return document.getElementById(id); }
 
     function pushEvent(message, type = 'info') {
       const eventList = $('eventList');
@@ -632,20 +794,12 @@
       const name = $('spawnName');
       const text = $('spawnText');
 
-      const id = mons.find(p => p.n.toLowerCase() === pokemonName.toLowerCase())?.id || 25;
+      const id = mons.find(m => String(m.id) === String(currentPokemon.id) || m.n.toLowerCase() === pokemonName.toLowerCase())?.id || 25;
       img.src = spriteUrl(id, shiny);
       name.textContent = pokemonName;
       text.textContent = shiny ? 'Du fångade en glänsande shiny Pokémon!' : 'Du fångade en ny Pokémon!';
       overlay.classList.add('visible');
       setTimeout(() => overlay.classList.remove('visible'), 1800);
-    }
-
-    function getDex(id) {
-      return mons.find(p => p.id === Number(id)) || null;
-    }
-
-    function spriteUrl(id, shiny = false) {
-      return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${shiny ? "shiny/" : ""}${id}.png`;
     }
 
     function rand(min, max) {
@@ -698,6 +852,84 @@
       $('mode').textContent = 'Byt räknesätt: ' + labels[mode];
     }
 
+    function renderAdminEvents() {
+      const root = $('eventAdminList');
+      if (!root) return;
+      root.innerHTML = '';
+
+      Object.entries(EVENT_CONFIG).forEach(([key, config]) => {
+        const item = document.createElement('div');
+        item.className = `event-admin-item ${config.active ? 'active' : ''}`;
+
+        const details = document.createElement('div');
+        details.innerHTML = `
+          <div class="label">${config.label}</div>
+          <span class="meta">Drop: ${config.rate}% • ${config.rewards.map(r => `${r.name} ${r.chance}%`).join(' / ')}</span>
+        `;
+
+        const btn = document.createElement('button');
+        btn.className = `btn ${config.active ? 'blue' : 'secondary'}`;
+        btn.textContent = config.active ? 'Stäng av' : 'Starta';
+        btn.type = 'button';
+        btn.addEventListener('click', () => toggleEvent(key));
+
+        item.appendChild(details);
+        item.appendChild(btn);
+        root.appendChild(item);
+      });
+    }
+
+    function toggleEvent(eventKey) {
+      const config = EVENT_CONFIG[eventKey];
+      if (!config) return;
+      config.active = !config.active;
+      renderAdminEvents();
+      const state = config.active ? 'startad' : 'stängd';
+      pushEvent(`${config.label} är nu ${state}.`, config.active ? 'good' : 'info');
+      showBanner(`${config.label} ${state}.`);
+    }
+
+    function maybeTriggerEvent() {
+      const activeEvents = Object.entries(EVENT_CONFIG).filter(([, config]) => config.active);
+      if (!activeEvents.length) return null;
+
+      const totalChance = activeEvents.reduce((sum, [, config]) => sum + Number(config.rate), 0);
+      const roll = Math.random() * 100;
+      let cursor = 0;
+
+      for (const [key, config] of activeEvents) {
+        cursor += Number(config.rate);
+        if (roll <= cursor) {
+          const rewardTotal = config.rewards.reduce((sum, reward) => sum + Number(reward.chance), 0);
+          let rewardRoll = Math.random() * rewardTotal;
+          let current = 0;
+
+          for (const reward of config.rewards) {
+            current += Number(reward.chance);
+            if (rewardRoll <= current) {
+              return {
+                id: reward.id,
+                name: reward.name,
+                eventKey: key,
+                custom: true,
+                rarity: `✨ ${config.label}`
+              };
+            }
+          }
+
+          return {
+            id: config.rewards[0].id,
+            name: config.rewards[0].name,
+            eventKey: key,
+            custom: true,
+            rarity: `✨ ${config.label}`
+          };
+        }
+      }
+
+      return null;
+    }
+
     function makeQuestion() {
       let qText, choices, correct;
       const ops = mode === 'mixed' ? ['+', '-', '×', '÷'] : [mode];
@@ -747,7 +979,7 @@
       img.alt = currentPokemon.name;
       img.onerror = () => {
         img.src = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='120' height='120' fill='#dfeaff'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='42'>🔍</text></svg>`
+          `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='120' height='120' fill='#dfeaff'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='22' font-weight='900' fill='#2f80ed'>?</text></svg>`
         );
       };
 
@@ -757,6 +989,17 @@
     }
 
     function rollPokemon() {
+      const eventReward = maybeTriggerEvent();
+      if (eventReward) {
+        return {
+          id: eventReward.id,
+          name: eventReward.name,
+          shiny: false,
+          custom: true,
+          rarity: eventReward.rarity || 'Event'
+        };
+      }
+
       if (!mons.length) {
         const fallback = FALLBACK_MONS[rand(0, FALLBACK_MONS.length - 1)];
         return { id: fallback.id, name: fallback.n, shiny: false, rarity: 'Vanlig' };
@@ -816,6 +1059,17 @@
       }, 700);
     }
 
+    function fillSpawnSuggestions() {
+      const list = $('spawnSuggestions');
+      if (!list) return;
+      list.innerHTML = '';
+      mons.forEach(mon => {
+        const option = document.createElement('option');
+        option.value = mon.n;
+        list.appendChild(option);
+      });
+    }
+
     function renderDex() {
       const search = $('dexSearch').value.toLowerCase();
       const list = mons.filter(p => {
@@ -838,7 +1092,7 @@
         img.alt = p.n;
         img.onerror = () => {
           img.src = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
-            `<svg xmlns='http://www.w3.org/2000/svg' width='46' height='46'><rect width='46' height='46' fill='#dfeaff'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='18'>🔍</text></svg>`
+            `<svg xmlns='http://www.w3.org/2000/svg' width='46' height='46'><rect width='46' height='46' fill='#dfeaff'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='12' font-weight='900' fill='#2f80ed'>?</text></svg>`
           );
         };
 
@@ -1001,172 +1255,81 @@
       } else {
         panel.classList.add('visible');
         btn.textContent = '🛠 STÄNG ADMINPANEL';
-        renderUserList();
-        pushEvent('Adminpanelen öppnades.', 'info');
       }
     }
 
-    async function renderUserList() {
-      const list = $('userList');
-      list.innerHTML = '';
-      const result = await api('/api/users');
-      if (!result.ok) return;
-
-      result.data.users.forEach(user => {
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.justifyContent = 'space-between';
-        row.style.alignItems = 'center';
-        row.style.padding = '8px 0';
-        row.style.borderBottom = '1px solid #e5e7eb';
-
-        const meta = document.createElement('div');
-        const roleText = user.isOwner ? 'Owner' : user.isAdmin ? 'Admin' : 'Spelare';
-        meta.innerHTML = `<b>${user.username}</b><div style="color:#6d7a8d;">${roleText} • ${user.caught || 0} fångade • ${user.coins || 0} coins</div>`;
-
-        const button = document.createElement('button');
-        button.className = 'btn secondary';
-        button.textContent = 'Välj';
-        button.onclick = () => {
-          $('spawnSearch').value = user.username;
-          $('spawnResult').textContent = `Förbereder spawn för ${user.username}.`;
-        };
-
-        row.appendChild(meta);
-        row.appendChild(button);
-        list.appendChild(row);
-      });
-    }
-
-    function fillSpawnSuggestions() {
-      const q = $('spawnSearch').value.trim().toLowerCase();
-      const datalist = $('spawnSuggestions');
-      datalist.innerHTML = '';
-      if (!q) {
-        const top = mons.slice(0, 20);
-        top.forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.n;
-          datalist.appendChild(opt);
-        });
-        return;
-      }
-
-      mons.filter(p => p.n.toLowerCase().includes(q)).slice(0, 20).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.n;
-        datalist.appendChild(opt);
-      });
-    }
-
-    async function spawnPokemonByName() {
-      const query = $('spawnSearch').value.trim();
-      const pokemon = mons.find(p => p.n.toLowerCase() === query.toLowerCase()) ||
-        mons.find(p => p.n.toLowerCase().includes(query.toLowerCase())) ||
-        mons.find(p => String(p.id) === query);
-
-      if (!pokemon) {
-        $('spawnResult').textContent = 'Hittade ingen Pokémon.';
-        return;
-      }
-
-      if (!['admin', 'owner'].includes(currentRole)) {
-        alert('Endast admin/owner kan spawna Pokémon.');
-        return;
-      }
-
-      const shiny = $('spawnShiny').checked;
-      const result = await api('/api/spawn', {
-        method: 'POST',
-        body: JSON.stringify({ username: currentUser, password: currentPassword, pokemonId: pokemon.id, shiny })
+    function bindUI() {
+      $('togglePassword').addEventListener('click', () => {
+        const input = $('password');
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        $('togglePassword').textContent = isPassword ? '👁 Dölj' : '👁 Visa';
       });
 
-      if (!result.ok) {
-        $('spawnResult').textContent = 'Kunde inte spawna Pokémon.';
-        return;
-      }
-
-      $('spawnResult').textContent = `✅ Spawnade ${pokemon.n} ${shiny ? '✨ shiny' : ''} för alla konton.`;
-      showBanner(`Spawnade ${pokemon.n}!`);
-      showSpawnAnimation(pokemon.n, shiny);
-      pushEvent(`Adminen spawna ${pokemon.n} till världen.`, 'good');
-      renderUserList();
-      renderDex();
-    }
-
-    $('togglePassword').addEventListener('click', () => {
-      const field = $('password');
-      const t = field.type === 'password' ? 'text' : 'password';
-      field.type = t;
-      $('togglePassword').textContent = t === 'password' ? '👁 Visa' : '🙈 Dölj';
-    });
-
-    $('createAccount').addEventListener('click', createAccount);
-    $('loginAccount').addEventListener('click', loginAccount);
-    $('logout').addEventListener('click', logoutUser);
-    $('restart').addEventListener('click', () => {
-      if (confirm('Vill du börja om?')) {
-        score = 0; level = 1; streak = 0; caught = 0; qCount = 0; coins = 0;
-        inventory = {}; shinyInventory = {};
-        updateStats();
-        renderDex();
+      $('createAccount').addEventListener('click', createAccount);
+      $('loginAccount').addEventListener('click', loginAccount);
+      $('logout').addEventListener('click', logoutUser);
+      $('resetAllData').addEventListener('click', resetGame);
+      $('restart').addEventListener('click', makeQuestion);
+      $('mode').addEventListener('click', () => {
+        const order = ['mixed', '+', '-', '×', '÷'];
+        const currentIndex = order.indexOf(mode);
+        mode = order[(currentIndex + 1) % order.length];
+        updateModeText();
+        pushEvent(`Räknesätt ändrat till ${mode === 'mixed' ? 'Blandat' : mode}.`, 'info');
         makeQuestion();
-        saveProgress();
-        pushEvent('En ny resa började.', 'info');
-      }
-    });
-
-    $('resetAllData').addEventListener('click', resetGame);
-    $('mode').addEventListener('click', () => {
-      const arr = ['mixed', '+', '-', '×', '÷'];
-      mode = arr[(arr.indexOf(mode) + 1) % arr.length];
-      updateModeText();
-      makeQuestion();
-    });
-
-    $('adminToggle').addEventListener('click', showAdminPanel);
-    $('sendMessage').addEventListener('click', async () => {
-      const text = $('adminMessage').value.trim();
-      const result = await api('/api/meta', {
-        method: 'POST',
-        body: JSON.stringify({ username: currentUser, password: currentPassword, message: text })
       });
-      if (result.ok) alert('✅ Meddelande sparat.');
-    });
-    $('clearMessage').addEventListener('click', async () => {
-      const result = await api('/api/meta', {
-        method: 'POST',
-        body: JSON.stringify({ username: currentUser, password: currentPassword, message: '' })
+
+      $('adminToggle').addEventListener('click', showAdminPanel);
+      $('sendMessage').addEventListener('click', () => {
+        const msg = $('adminMessage').value.trim();
+        if (!msg) return alert('Skriv ett meddelande först.');
+        pushEvent(`Admin: ${msg}`, 'info');
+        showBanner('Globalt meddelande skickat!');
       });
-      if (result.ok) {
+      $('clearMessage').addEventListener('click', () => {
         $('adminMessage').value = '';
-        alert('✅ Globalt meddelande rensat.');
-      }
-    });
-
-    $('spawnSearch').addEventListener('input', fillSpawnSuggestions);
-    $('spawnPokemon').addEventListener('click', spawnPokemonByName);
-
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        activeTab = tab.dataset.tab;
-        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
-        renderDex();
       });
-    });
 
-    $('dexSearch').addEventListener('input', renderDex);
-    $('dexPageSize').addEventListener('change', renderDex);
+      $('spawnPokemon').addEventListener('click', () => {
+        const text = $('spawnSearch').value.trim();
+        const find = mons.find(m => m.n.toLowerCase() === text.toLowerCase() || String(m.id) === text);
+        const shiny = $('spawnShiny').checked;
+        if (!find) {
+          $('spawnResult').textContent = 'Kunde inte hitta Pokémonen.';
+          return;
+        }
+        if (shiny) {
+          shinyInventory[find.id] = (shinyInventory[find.id] || 0) + 1;
+        } else {
+          inventory[find.id] = (inventory[find.id] || 0) + 1;
+        }
+        $('spawnResult').textContent = `${find.n} ${shiny ? 'shiny' : ''} har spawnat.`;
+        renderDex();
+        pushEvent(`Admin spawnade ${find.n}.`, 'good');
+        showBanner(`${find.n} spawnad!`);
+      });
 
-    pushEvent('Pokémon-världen är redo för en ny matteäventyr.', 'info');
-    pushEvent('Logga in för att börja din resa.', 'info');
+      $('dexSearch').addEventListener('input', renderDex);
+      $('dexPageSize').addEventListener('change', renderDex);
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          activeTab = tab.dataset.tab;
+          document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+          renderDex();
+        });
+      });
+    }
+
+    bindUI();
+    loadAllMons();
+    loadMeta();
     updateRoleUI();
     updateModeText();
     updateStats();
     renderDex();
     makeQuestion();
-    loadMeta();
-    loadAllMons();
+    pushEvent('Välkommen till Pokémon Matteäventyr.', 'info');
   </script>
 </body>
 </html>
